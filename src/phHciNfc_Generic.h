@@ -67,6 +67,7 @@
 */
 
 #define Trace_buffer    phOsalNfc_DbgTraceBuffer
+extern bool_t phOsalNfc_EnableLogging_HCI;
 
 /* HCI TRACE Macros */
 #if defined(HCI_TRACE)&& !defined(SILENT_HCI)
@@ -75,19 +76,21 @@
 extern char phOsalNfc_DbgTraceBuffer[];
 #define MAX_TRACE_BUFFER    150
 /* #define HCI_PRINT( str )  phOsalNfc_DbgTrace(str) */
-#define HCI_PRINT( str )  phOsalNfc_DbgString(str)
-#define HCI_DEBUG(...) ALOGD(__VA_ARGS__)
+#define HCI_PRINT( str )  { if (phOsalNfc_EnableLogging_HCI) { phOsalNfc_DbgString(str); } }
+#define HCI_DEBUG(...)    { if (phOsalNfc_EnableLogging_HCI) { ALOGD(__VA_ARGS__); } }
 
 
 
 
 #define HCI_PRINT_BUFFER(msg,buf,len)               \
     {                                               \
-        snprintf(Trace_buffer,MAX_TRACE_BUFFER,"\t %s:",msg); \
-        phOsalNfc_DbgString(Trace_buffer);              \
-        phOsalNfc_DbgTrace(buf,len);                \
-        phOsalNfc_DbgString("\r");                  \
-                                                    \
+        if (phOsalNfc_EnableLogging_HCI) \
+        { \
+            snprintf(Trace_buffer,MAX_TRACE_BUFFER,"\t %s:",msg); \
+            phOsalNfc_DbgString(Trace_buffer);              \
+            phOsalNfc_DbgTrace(buf,len);                \
+            phOsalNfc_DbgString("\r");                  \
+        } \
     }
 #else
 #include <phDbgTrace.h>

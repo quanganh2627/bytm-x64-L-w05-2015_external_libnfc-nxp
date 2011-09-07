@@ -38,8 +38,14 @@
 #define LOG_TAG "NFC-HCI"
 
 #include <utils/Log.h>
+#include <cutils/properties.h>
 
 phOsalNfc_Exception_t phOsalNfc_Exception;
+
+bool_t phOsalNfc_EnableLogging_HCI = FALSE;
+bool_t phOsalNfc_EnableLogging_DAL = FALSE;
+bool_t phOsalNfc_EnableLogging_LLC = FALSE;
+bool_t phOsalNfc_EnableLogging_LLCP = FALSE;
 #endif
 
 #ifdef DEBUG
@@ -48,6 +54,59 @@ char phOsalNfc_DbgTraceBuffer[MAX_PRINT_BUFSIZE];
 #endif
 
 void phLibNfc_Mgt_Recovery();
+
+/*!
+ * \brief Initializes logging verbosity based on the debug.nfc.yyy property.
+ *
+ *          yyy is either:
+ *          - DAL_TRACE
+ *          - LLC_TRACE
+ *          - LLCP_TRACE
+ *          - HCI_TRACE
+ *
+ *          ex:
+ *          adb shell setprop debug.nfc.HCI_TRACE 1 : enable HCI messages logging
+ *          adb shell setprop debug.nfc.HCI_TRACE 0 : disable HCI messages logging
+ *
+ * \param   None
+ *
+ * \retval  None
+ *
+ */
+void phOsalNfc_InitLogging(void)
+{
+#ifdef ANDROID
+   char enable[PROPERTY_VALUE_MAX];
+
+   if (property_get("debug.nfc.DAL_TRACE", enable, "0"))
+   {
+      phOsalNfc_EnableLogging_DAL = atoi(enable);
+      ALOGD("%s : EnableLogging DAL = %d",
+            __func__, phOsalNfc_EnableLogging_DAL);
+   }
+
+   if (property_get("debug.nfc.LLC_TRACE", enable, "0"))
+   {
+      phOsalNfc_EnableLogging_LLC = atoi(enable);
+      ALOGD("%s : EnableLogging LLC = %d",
+            __func__, phOsalNfc_EnableLogging_LLC);
+   }
+
+   if (property_get("debug.nfc.LLCP_TRACE", enable, "0"))
+   {
+      phOsalNfc_EnableLogging_LLCP = atoi(enable);
+      ALOGD("%s : EnableLogging LLCP = %d",
+            __func__, phOsalNfc_EnableLogging_LLCP);
+   }
+
+   if (property_get("debug.nfc.HCI_TRACE", enable, "0"))
+   {
+      phOsalNfc_EnableLogging_HCI = atoi(enable);
+      ALOGD("%s : EnableLogging HCI = %d",
+            __func__, phOsalNfc_EnableLogging_HCI);
+   }
+#endif
+}
 
 /*!
  * \brief Allocates memory.
