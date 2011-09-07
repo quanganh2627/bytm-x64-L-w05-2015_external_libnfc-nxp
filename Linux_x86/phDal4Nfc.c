@@ -249,6 +249,8 @@ NFCSTATUS phDal4Nfc_Init(void *pContext, void *pHwRef )
         pContext  = pgDalContext;
         pgDalHwContext = (phHal_sHwReference_t *)pHwRef;
 
+        phOsalNfc_InitLogging();
+
         if ( gDalContext.hw_valid == TRUE )
         {
             /* The link has been opened from the application interface */
