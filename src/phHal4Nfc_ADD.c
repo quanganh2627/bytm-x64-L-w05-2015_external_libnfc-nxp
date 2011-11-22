@@ -452,6 +452,9 @@ void phHal4Nfc_TargetDiscoveryComplete(
         psRemoteDevInfo = (phHal_sRemoteDevInformation_t *)
                                     ((phNfc_sCompletionInfo_t *)pInfo)->info;
 
+        /* UICC Reader Mode status */
+        psRemoteDevInfo->UiccReaderModeDetected = gpphHal4Nfc_Hwref->uicc_rdr_active;
+
         switch(psRemoteDevInfo->RemDevType)
         {
             case phHal_eISO14443_A_PICC:/*for TYPE A*/

@@ -40,6 +40,11 @@
 #include <phNfcCustomInt.h>
 #else
 #include <memory.h>
+#include <stdlib.h>
+
+#ifdef ANDROID
+#include <cutils/properties.h>
+#endif
 
 /**< OSAL Message Type */
 #ifdef WIN32

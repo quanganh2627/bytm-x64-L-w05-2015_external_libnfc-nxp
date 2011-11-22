@@ -677,7 +677,7 @@ phHciNfc_Recv_PollLoop_Event(
     phHciNfc_sContext_t         *psHciContext = 
                                 (phHciNfc_sContext_t *)psContext ;
     if( (NULL == psHciContext) || (NULL == pHwRef) || (NULL == pEvent)
-        || (length <= HCP_HEADER_LEN))
+        || (length < HCP_HEADER_LEN))
     {
         status = PHNFCSTVAL(CID_NFC_HCI, NFCSTATUS_INVALID_PARAMETER);
     }
