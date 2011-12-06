@@ -512,7 +512,7 @@ phHciNfc_Config_Emulation (
         }
         else
         {
-            /* TODO: Return appropriate Error */
+            status = NFCSTATUS_BUSY;
         }
     }
     return status;
