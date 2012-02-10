@@ -1600,8 +1600,9 @@ phLlcNfc_H_ProcessSFrame (
 
     /* Correct frame is received, so remove the 
         stored i frame info for the acknowledged frames */
-    no_of_del_frames = phLlcNfc_H_UpdateIFrameList (ps_frame_info, 
-                                        &(ps_frame_info->s_send_store));
+    if (cmdtype != phLlcNfc_e_rej)
+        no_of_del_frames = phLlcNfc_H_UpdateIFrameList (ps_frame_info,
+                                           &(ps_frame_info->s_send_store));
 
     PH_LLCNFC_DEBUG("NS START POS AFTER DEL : 0x%02X\n", ps_store_frame->start_pos);
     PH_LLCNFC_DEBUG("WIN SIZE AFTER DEL : 0x%02X\n", ps_store_frame->winsize_cnt);
