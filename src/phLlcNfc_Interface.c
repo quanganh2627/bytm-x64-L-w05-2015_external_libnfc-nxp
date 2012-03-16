@@ -633,6 +633,17 @@ phLlcNfc_WrResp_Cb(
                 phLlcNfc_StopTimers(PH_LLCNFC_GUARDTIMER, 
                                     ps_llc_ctxt->s_timerinfo.guard_to_count);
                 PH_LLCNFC_DEBUG("Error status received : 0x%x\n", pCompInfo->status);
+                /* Check if we have board communication error, which means that chip doesn't
+                 * respond. Since the sending of the frame was unsuccessful, previously increased
+                 * win size count should be decreased back again. Perhaps a check should be added
+                 * to exclude the S frame sending, but in this case we presume that the chip is
+                 * waken up and it's in the good shape, since with the S frame we acknowledge
+                 *  previously received I or S frame from the chip. */
+                if (NFCSTATUS_BOARD_COMMUNICATION_ERROR == PHNFCSTATUS(pCompInfo->status)) {
+                    if (ps_llc_ctxt->s_frameinfo.s_send_store.winsize_cnt > 0) {
+                        ps_llc_ctxt->s_frameinfo.s_send_store.winsize_cnt--;
+                    }
+                }
                 ps_llc_ctxt->cb_for_if.send_complete(
                                     ps_llc_ctxt->cb_for_if.pif_ctxt, 
                                     pHwInfo, pCompInfo);
