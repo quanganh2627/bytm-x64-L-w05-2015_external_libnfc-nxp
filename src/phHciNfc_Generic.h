@@ -292,6 +292,9 @@ extern char phOsalNfc_DbgTraceBuffer[];
 
 /* Maximum Payload Length of HCI. */
 
+/* HCI max number of retries in case of tx error on physical layer */
+#define HCI_TX_MAX_RETRIES          0x02U
+
 
 /*
 ################################################################################
@@ -704,6 +707,8 @@ typedef struct phHciNfc_sContext{
     volatile uint16_t           tx_remain;
     /** \internal Number of bytes sent */
     volatile uint16_t           tx_sent;
+    /** \internal Number of times a packet has been resent */
+    volatile uint16_t           tx_retries;
 
     volatile uint16_t           rx_index;
 
