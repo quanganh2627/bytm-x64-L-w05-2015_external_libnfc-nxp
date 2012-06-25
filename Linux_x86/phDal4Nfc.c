@@ -84,6 +84,7 @@ typedef struct Dal_RdWr_st
     char                  nWaitingOnWrite;         /* Write state machine */
     char                  nWriteThreadAlive;       /* Write state machine */
     char                  nWriteBusy;              /* Write state machine */
+    pthread_mutex_t       nCriticalWriteSectionMutex;
 } phDal4Nfc_RdWr_t;
 
 typedef void   (*pphDal4Nfc_DeferFuncPointer_t) (void * );
@@ -345,6 +346,7 @@ NFCSTATUS phDal4Nfc_ConfigRelease(void *pHwRef)
        mq_close(nDeferedCallMessageQueueId);
 #endif
 
+       pthread_mutex_destroy(&gReadWriteContext.nCriticalWriteSectionMutex);
        /* Shutdown NFC Chip */
        phDal4Nfc_Reset(0);
 
@@ -389,9 +391,15 @@ NFCSTATUS phDal4Nfc_Write( void *pContext, void *pHwRef,uint8_t *pBuffer, uint16
     {
         if( gDalContext.hw_valid== TRUE)
         {
+            pthread_mutex_lock(&gReadWriteContext.nCriticalWriteSectionMutex);
             if((!gReadWriteContext.nWriteBusy)&&
                 (!gReadWriteContext.nWaitingOnWrite))
             {
+                /* Change the write state so that thread can take over the write */
+                gReadWriteContext.nWriteBusy = TRUE;
+                /* Just set variable here. This is the trigger for the Write thread */
+                gReadWriteContext.nWaitingOnWrite = TRUE;
+                pthread_mutex_unlock(&gReadWriteContext.nCriticalWriteSectionMutex);
 		DAL_PRINT("phDal4Nfc_Write() : Temporary buffer !! \n");
 		gReadWriteContext.pTempWriteBuffer = (uint8_t*)malloc(length * sizeof(uint8_t));
 		/* Make a copy of the passed arguments */
@@ -399,10 +407,6 @@ NFCSTATUS phDal4Nfc_Write( void *pContext, void *pHwRef,uint8_t *pBuffer, uint16
                 DAL_DEBUG("phDal4Nfc_Write(): %d\n", length);
                 gReadWriteContext.pWriteBuffer = gReadWriteContext.pTempWriteBuffer;
                 gReadWriteContext.nNbOfBytesToWrite  = length;
-                /* Change the write state so that thread can take over the write */
-                gReadWriteContext.nWriteBusy = TRUE;
-                /* Just set variable here. This is the trigger for the Write thread */
-                gReadWriteContext.nWaitingOnWrite = TRUE;
                 /* Update the error state */
                 result = NFCSTATUS_PENDING;
                 /* Send Message and perform physical write in the DefferedCallback */
@@ -417,6 +421,7 @@ NFCSTATUS phDal4Nfc_Write( void *pContext, void *pHwRef,uint8_t *pBuffer, uint16
             else
             {
                 /* Driver is BUSY with previous Write */
+                pthread_mutex_unlock(&gReadWriteContext.nCriticalWriteSectionMutex);
                 DAL_PRINT("phDal4Nfc_Write() : Busy \n");
                 result = PHNFCSTVAL(CID_NFC_DAL, NFCSTATUS_BUSY) ;
             }
@@ -622,6 +627,9 @@ NFCSTATUS phDal4Nfc_Config(pphDal4Nfc_sConfig_t config,void **phwref)
    gReadWriteContext.nReadThreadAlive     = TRUE;
    gReadWriteContext.nWriteBusy = FALSE;
    gReadWriteContext.nWaitingOnWrite = FALSE;
+   if (pthread_mutex_init(&gReadWriteContext.nCriticalWriteSectionMutex, NULL) == -1) {
+      return NFCSTATUS_FAILED;
+   }
    
    /* Prepare the message queue for the defered calls */
 #ifdef USE_MQ_MESSAGE_QUEUE
