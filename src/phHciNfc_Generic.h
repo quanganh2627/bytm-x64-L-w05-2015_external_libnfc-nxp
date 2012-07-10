@@ -735,6 +735,17 @@ typedef struct phHciNfc_sContext{
     /** \internal Pending Release of the detected Target */
     uint8_t                     target_release;
 
+    /** \internal Dispatch to UICC - HCI user defined (through system
+    *   properties) timeout.
+    *   It temporarily overrides the HCI timeout which may be not
+    *   sufficient for scenarios where UICC reader application may
+    *   need more time to process transcations, including potential
+    *   connection to external servert etc.
+    *   Value of this timeout is application specific and can be modified
+    *   with use of persist.nfc.uicc_timeout property.
+    */
+    uint8_t                     dispatch_to_uicc_timeout;
+
 }phHciNfc_sContext_t;
 
 /*
