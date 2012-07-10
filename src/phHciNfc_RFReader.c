@@ -1351,7 +1351,8 @@ phHciNfc_ReaderMgmt_UICC_Dispatch(
         && (reader_pipe_id != HCI_UNKNOWN_PIPE_ID )
         )
     {
-        status = phHciNfc_Send_RFReader_Command (psHciContext, 
+        psHciContext->dispatch_to_uicc_timeout = TRUE;
+        status = phHciNfc_Send_RFReader_Command (psHciContext,
                         pHwRef, reader_pipe_id, NXP_WR_DISPATCH_TO_UICC );
     }
 

@@ -578,8 +578,30 @@ phHciNfc_Release_Lower(
        )
     {
         /* Start the HCI Response Timer */
-        phOsalNfc_Timer_Start( hci_resp_timer_id,
+        if (TRUE == psHciContext->dispatch_to_uicc_timeout)
+        {
+#ifdef ANDROID
+            char timeout_property[PROPERTY_VALUE_MAX];
+#endif
+            uint32_t timeout = 30000;
+
+#ifdef ANDROID
+            if (property_get("persist.nfc.uicc_timeout", timeout_property, "30000"))
+            {
+               timeout = atoi(timeout_property);
+            }
+#endif
+
+            phOsalNfc_Timer_Start( hci_resp_timer_id,
+                timeout, phHciNfc_Response_Timeout, NULL );
+            psHciContext->dispatch_to_uicc_timeout = FALSE;
+        }
+        else
+        {
+            phOsalNfc_Timer_Start( hci_resp_timer_id,
                 nxp_nfc_hci_response_timeout, phHciNfc_Response_Timeout, NULL );
+        }
+
         HCI_DEBUG(" HCI : Timer %X Started \n", hci_resp_timer_id);
     }
 

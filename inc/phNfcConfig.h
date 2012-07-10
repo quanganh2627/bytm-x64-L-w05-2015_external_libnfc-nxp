@@ -291,7 +291,7 @@
 #endif 
 
 #ifndef NXP_UICC_RD_RIGHTS
-#define NXP_UICC_RD_RIGHTS              0x00U
+#define NXP_UICC_RD_RIGHTS              0x0FU
 #endif 
 
 
