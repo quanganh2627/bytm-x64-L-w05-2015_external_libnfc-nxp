@@ -480,6 +480,10 @@ NFCSTATUS phHal4Nfc_Ioctl(
         {
             RetStatus = phDnldNfc_Run_Check(
                 psHwReference                       
+#ifdef NXP_FW_PARAM
+                        , nxp_nfc_fw
+                        , 0
+#endif
                 );
         }
         else
@@ -510,6 +514,10 @@ NFCSTATUS phHal4Nfc_Ioctl(
                 /*Upgrade the firmware*/
                 RetStatus = phDnldNfc_Upgrade (
                         psHwReference,
+#ifdef NXP_FW_PARAM
+                        nxp_nfc_fw ,
+                        0 ,
+#endif
                         phHal4Nfc_DownloadComplete,
                         Hal4Ctxt
                         );

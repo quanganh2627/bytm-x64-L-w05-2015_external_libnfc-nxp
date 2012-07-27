@@ -451,7 +451,7 @@ typedef struct phDnldNfc_TxInfo
     uint16_t      tx_total;
 
     /** \internal Chain information for the data to be sent */
-    uint8_t       tx_chain;
+    uint16_t       tx_chain;
 
 }phDnldNfc_TxInfo_t;
 
@@ -533,7 +533,6 @@ typedef struct phDnldNfc_sContext
 
     phDnldNfc_eChkCrc_t         chk_integrity_param;
 
-#define NXP_FW_SW_VMID_TRIM
 #ifdef  NXP_FW_SW_VMID_TRIM
 
 #define NXP_FW_VMID_TRIM_CHK_ADDR   0x0000813DU
@@ -605,6 +604,16 @@ static phDnldNfc_sContext_t *gpphDnldContext = NULL;
 static uint8_t  gphDnldPhase = NXP_FW_DNLD_COMPLETE_PHASE;
 
 #endif /* #ifdef NXP_FW_DNLD_CHECK_PHASE */
+
+#ifdef NXP_FW_DNLD_DIAGNOSTICS
+
+#define   NXP_FW_DNLD_TRIG_ADDR            0x9FF4U
+#define   NXP_FW_DNLD_TOTAL_FAILURE_ADDR   0x9FF5U
+#define   NXP_FW_DNLD_FAILURE_ADDR         0x9FF6U
+
+static uint8_t  gphDnldFailure = 0x00;
+
+#endif /* #ifdef NXP_FW_DNLD_DIAGNOSTICS */
 
 /**/
 
@@ -1372,14 +1381,15 @@ phDnldNfc_Process_Write(
     uint8_t                 *p_sm_trim_data = (uint8_t *)psDnldContext->
                                         dnld_resp.param_info.response_data;
     uint32_t                dnld_addr = 0;
-#ifdef  NXP_FW_SW_VMID_TRIM
+#if defined(NXP_FW_SW_VMID_TRIM) || defined(NXP_FW_DNLD_DIAGNOSTICS)
+    phHal_sHwReference_t    *p_hw_ref =
+                            ((phHal_sHwReference_t *) pHwRef);
     uint32_t                trim_addr = 0;
-#endif /* #ifdef NXP_FW_SW_VMID_TRIM */
+#endif /* End of Define check */
     static unsigned         sec_type = 0;
     uint8_t                 i = 0;
     uint16_t                dnld_size = 0;
     int cmp_val = 0x00;
-
 
     sec_type = (unsigned int)p_sec_info->p_sec_hdr->section_mem_type;
 
@@ -1522,8 +1532,13 @@ phDnldNfc_Process_Write(
             for(i = 0; i < *(p_sec_info->p_trim_data);i++)
             {
 
+#if defined(NXP_FW_SW_VMID_TRIM) || defined(NXP_FW_DNLD_DIAGNOSTICS)
+                trim_addr = p_sec_info->p_sec_hdr->section_address
+                                    + p_sec_info->p_trim_data[i+1];
+                switch(trim_addr)
+#endif /* End of Define check */
+                {
 #ifdef  NXP_FW_SW_VMID_TRIM
-
 /*
 if(bit 0 of 0x813D is equal to 1) then
    
@@ -1534,30 +1549,70 @@ else
    @0x9931 = 0x79 // card Mode
    @0x9981 = 0x79 // Reader Mode
 */
-                trim_addr = p_sec_info->p_sec_hdr->section_address 
-                                    + p_sec_info->p_trim_data[i+1];
-                if (NXP_FW_VMID_TRIM_CHK_ADDR == trim_addr)
-                {
-                    psDnldContext->vmid_trim_update = 
-                            p_sm_trim_data[p_sec_info->p_trim_data[i+1]] ;
-                }
+                      case NXP_FW_VMID_TRIM_CHK_ADDR:
+                      {
+                          psDnldContext->vmid_trim_update =
+                                  p_sm_trim_data[p_sec_info->p_trim_data[i+1]] ;
+                          break;
+                      }
+                      case NXP_FW_VMID_CARD_MODE_ADDR:
+                      case NXP_FW_VMID_RD_MODE_ADDR:
+                      {
+                          if (TRUE == psDnldContext->vmid_trim_update)
+                          {
+                              dnld_data->data_packet[p_sec_info->p_trim_data[i+1]] =
+                                      p_sm_trim_data[p_sec_info->p_trim_data[i+1]] ;
+                          }
+                          break;
+                      }
+#endif /* #ifdef  NXP_FW_SW_VMID_TRIM */
 
-                if((NXP_FW_VMID_CARD_MODE_ADDR == trim_addr) 
-                        || (NXP_FW_VMID_RD_MODE_ADDR == trim_addr))
-                {
-                    if (TRUE == psDnldContext->vmid_trim_update) 
-                    {
-                        dnld_data->data_packet[p_sec_info->p_trim_data[i+1]] =
+#if defined(NXP_FW_DNLD_DIAGNOSTICS)
+                      case NXP_FW_DNLD_TRIG_ADDR:
+                      {
+                          dnld_data->data_packet[p_sec_info->p_trim_data[i+1]] =
+                                    p_sm_trim_data[p_sec_info->p_trim_data[i+1]] + 1;
+                          break;
+                      }
+                      case NXP_FW_DNLD_FAILURE_ADDR:
+                      {
+                          if (!p_hw_ref->device_info.fw_version)
+                          {
+                              dnld_data->data_packet[p_sec_info->p_trim_data[i+1]] =
+                                    p_sm_trim_data[p_sec_info->p_trim_data[i+1]] + 1;
+                          }
+                          else
+                          {
+                              dnld_data->data_packet[p_sec_info->p_trim_data[i+1]] =
+                                    0x00 ;
+                          }
+                          break;
+                      }
+                      case NXP_FW_DNLD_TOTAL_FAILURE_ADDR:
+                      {
+                          if (!p_hw_ref->device_info.fw_version)
+                          {
+                             dnld_data->data_packet[p_sec_info->p_trim_data[i+1]] =
+                                   p_sm_trim_data[p_sec_info->p_trim_data[i+1]] + 1;
+                          }
+                          else
+                          {
+                             dnld_data->data_packet[p_sec_info->p_trim_data[i+1]] =
+                                  p_sm_trim_data[p_sec_info->p_trim_data[i+1]];
+                          }
+                          break;
+                      }
+#endif /* #ifdef NXP_FW_DNLD_DIAGNOSTICS */
+
+#if defined(NXP_FW_SW_VMID_TRIM) || defined(NXP_FW_DNLD_DIAGNOSTICS)
+                      /* fall through */
+                      default:
+#endif /* End of Define check */
+                      {
+                            dnld_data->data_packet[p_sec_info->p_trim_data[i+1]] =
                                 p_sm_trim_data[p_sec_info->p_trim_data[i+1]] ;
-                    }
-                }
-                else
-                     
-#endif
-                {
-                    dnld_data->data_packet[p_sec_info->p_trim_data[i+1]] =
-                            p_sm_trim_data[p_sec_info->p_trim_data[i+1]] ;
-                }
+                      }
+                 } /* End of Switch Block if Enabled */
             }
             if(NULL != psDnldContext->trim_store.buffer)
             {
@@ -1565,14 +1620,9 @@ else
                 psDnldContext->trim_store.buffer = NULL;
                 psDnldContext->trim_store.length = 0;
             }
-#if 1
             (void)
                 phDnldNfc_Allocate_Resource((void **)
                               &(psDnldContext->trim_store.buffer),dnld_size);
-#else
-            psDnldContext->trim_store.buffer =
-                                (uint8_t *) phOsalNfc_GetMemory(dnld_size);
-#endif
 
             if(NULL != psDnldContext->trim_store.buffer)
             {
@@ -1584,7 +1634,6 @@ else
                 DNLD_DEBUG(" FW_DNLD: Write with Trimming at Address %X ", dnld_addr );
                 DNLD_DEBUG(" of Size %X and ", dnld_size );
                 DNLD_DEBUG(" with %X Trimming Values \n", *(p_sec_info->p_trim_data) );
-
             }
         }
         else
@@ -1595,14 +1644,9 @@ else
                 psDnldContext->dnld_store.buffer = NULL;
                 psDnldContext->dnld_store.length = 0;
             }
-#if 1
             (void)
                 phDnldNfc_Allocate_Resource((void **)
                               &(psDnldContext->dnld_store.buffer),dnld_size);
-#else
-            psDnldContext->dnld_store.buffer =
-                                (uint8_t *) phOsalNfc_GetMemory(dnld_size);
-#endif
             if(NULL != psDnldContext->dnld_store.buffer)
             {
                 (void )memset((void *)psDnldContext->dnld_store.buffer,0,
@@ -1781,7 +1825,7 @@ phDnldNfc_Sequence(
     uint8_t             *p_data = NULL;
     static  uint32_t    patch_size = 0;
 
-#if (ES_HW_VER == 32)
+#if (ES_HW_VER >= 32)
 
     static  uint8_t     patch_table[] = {0xA0, 0xA1, 0xE0, 0x80, 0xA9, 0x6C };
     static  uint8_t     patch_data[] = {0xA5, 0xD0, 0xFE, 0xA5, 0xD0, 0xFD, 0xA5,
@@ -1973,7 +2017,7 @@ phDnldNfc_Tx_Reset(phDnldNfc_sContext_t    *psDnldContext)
 }
 
 STATIC
-bool_t
+uint8_t
 phDnldNfc_Extract_Chunks(
                        uint8_t  *frame_data,
                        uint16_t  frame_offset,
@@ -1984,7 +2028,7 @@ phDnldNfc_Extract_Chunks(
 
 
 STATIC
-bool_t
+uint8_t
 phDnldNfc_Extract_Chunks(
                        uint8_t  *frame_data,
                        uint16_t  frame_offset,
@@ -1993,7 +2037,8 @@ phDnldNfc_Extract_Chunks(
                        uint16_t  *chunk_length
                        )
 {
-    bool_t  chunk_present = FALSE;
+    uint8_t  chunk_present = FALSE;
+    PHNFC_UNUSED_VARIABLE(frame_data);
 
     if( 0 == frame_offset)
     {
@@ -2023,7 +2068,6 @@ phDnldNfc_Extract_Chunks(
             chunk_present = TRUE;
         }
     }
-
     return chunk_present;
 }
 
@@ -2038,8 +2082,10 @@ phDnldNfc_Send_Raw(
                         uint16_t                frame_length
                       )
 {
-	NFCSTATUS status = NFCSTATUS_SUCCESS;
-	phDnldNfc_sRawHdr_t *raw_frame_hdr = ( phDnldNfc_sRawHdr_t * ) raw_frame;
+    NFCSTATUS status = NFCSTATUS_SUCCESS;
+    phDnldNfc_sRawHdr_t *raw_frame_hdr = ( phDnldNfc_sRawHdr_t * ) raw_frame;
+    PHNFC_UNUSED_VARIABLE(frame_offset);
+
 
     switch(raw_frame_hdr->frame_type)
 	{
@@ -2054,8 +2100,8 @@ phDnldNfc_Send_Raw(
         }
         case PHDNLD_CMD_WRITE:
         {
-			phDnldNfc_sRawDataHdr_t *raw_data_hdr =
-				( phDnldNfc_sRawDataHdr_t * ) (raw_frame + FRAME_HEADER_LEN);
+            /* phDnldNfc_sRawDataHdr_t *raw_data_hdr =
+                ( phDnldNfc_sRawDataHdr_t * ) (raw_frame + FRAME_HEADER_LEN); */
 
             psDnldContext->resp_length = PHDNLD_MIN_PACKET;
 
@@ -2088,7 +2134,8 @@ phDnldNfc_Send_Raw(
                 {
                     psDnldContext->prev_cmd = raw_frame_hdr->frame_type;
                     /* TODO: Update for the Chaining */
-                    psDnldContext->tx_info.tx_offset += tx_length;
+                    psDnldContext->tx_info.tx_offset =  (uint16_t)
+                           psDnldContext->tx_info.tx_offset + tx_length;
                     psDnldContext->tx_info.tx_chain = chain;
                 }
             }
@@ -2108,8 +2155,8 @@ phDnldNfc_Send_Raw(
             }
             else
             {
-			    phDnldNfc_sRawDataHdr_t *raw_data_hdr =
-				    ( phDnldNfc_sRawDataHdr_t * ) (raw_frame + FRAME_HEADER_LEN);
+                /* phDnldNfc_sRawDataHdr_t *raw_data_hdr =
+                      ( phDnldNfc_sRawDataHdr_t * ) (raw_frame + FRAME_HEADER_LEN); */
                 psDnldContext->resp_length = PHDNLD_MIN_PACKET;
             }
 
@@ -2183,33 +2230,6 @@ phDnldNfc_Send_Raw(
     return status;
 }
 
-
-static
-NFCSTATUS
-phDnldNfc_Frame_Complete(phDnldNfc_sContext_t *psDnldContext)
-{
-    NFCSTATUS               status = NFCSTATUS_SUCCESS;
-    phDnldNfc_sData_Hdr_t   *p_dnld_raw = NULL;
-    uint32_t                dnld_index = psDnldContext->dnld_index;
-    uint8_t                 *p_raw_sec_hdr = NULL;
-    uint16_t                tx_length = 0x00;
-
-    dnld_index = dnld_index + psDnldContext->prev_dnld_size;
-    p_raw_sec_hdr = psDnldContext->p_fw_raw + dnld_index;
-    dnld_index = dnld_index + *p_raw_sec_hdr;
-
-    p_dnld_raw = (phDnldNfc_sData_Hdr_t *) (psDnldContext->p_fw_raw +
-                                              psDnldContext->dnld_index);
-
-    tx_length = ((p_dnld_raw->frame_length[0] << BYTE_SIZE) |
-                            p_dnld_raw->frame_length[1]);
-
-    tx_length = tx_length + PHDNLD_MIN_PACKET;
-
-    return status;
-}
-
-
 static
 NFCSTATUS
 phDnldNfc_Raw_Write(
@@ -2237,6 +2257,7 @@ phDnldNfc_Raw_Write(
         }
         else
         {
+
             phDnldNfc_sData_Hdr_t *p_dnld_raw = (phDnldNfc_sData_Hdr_t *)
 									(psDnldContext->p_fw_raw +
                                               psDnldContext->dnld_index);
@@ -2299,11 +2320,11 @@ phDnldNfc_Raw_Write(
                         (frame_type & PHDNLD_MARKER_MASK))
             {
                 if(TRUE != skip_frame)
-	        {
-                   psDnldContext->raw_mode_upgrade = 
+                {
+                   psDnldContext->raw_mode_upgrade = (uint8_t)
                        (psDnldContext->raw_mode_upgrade &
                               ~(frame_type & ~PHDNLD_MARKER_MASK));
-		}
+                }
 
                 if(PHDNLD_NO_OPERATION ==
                         psDnldContext->raw_mode_upgrade)
@@ -2855,12 +2876,28 @@ phDnldNfc_Receive_Complete (
                 case PHDNLD_RESP_INVALID_PARAMETER:
                 case PHDNLD_RESP_INVALID_LENGTH:
                     /*  Initial Frame Checksum */
-                case PHDNLD_RESP_CHKSUM_ERROR:
                 case PHDNLD_RESP_MEMORY_UPDATE_ERROR:
                 {
                     psDnldContext->dnld_retry = NXP_MAX_DNLD_RETRY;
                     status = PHNFCSTVAL(CID_NFC_DNLD,
                                                 resp_data->frame_type);
+                    break;
+                }
+                case PHDNLD_RESP_CHKSUM_ERROR:
+                {
+                    if ( PHDNLD_SETUP_OPERATION
+                                 & psDnldContext->raw_mode_upgrade )
+                    {
+                       psDnldContext->raw_mode_upgrade = (uint8_t)
+                        (psDnldContext->raw_mode_upgrade &
+                            ~( psDnldContext->cur_frame_info & ~PHDNLD_MARKER_MASK ));
+                    }
+                    else
+                {
+                    psDnldContext->dnld_retry = NXP_MAX_DNLD_RETRY;
+                    status = PHNFCSTVAL(CID_NFC_DNLD,
+                                                resp_data->frame_type);
+                    }
                     break;
                 }
                 case PHDNLD_RESP_PROTOCOL_ERROR:
@@ -2891,7 +2928,7 @@ phDnldNfc_Receive_Complete (
                     }
                     else
                     {
-                       psDnldContext->raw_mode_upgrade =
+                       psDnldContext->raw_mode_upgrade = (uint8_t)
                         (psDnldContext->raw_mode_upgrade &
                             ~( psDnldContext->cur_frame_info & ~PHDNLD_MARKER_MASK ));
                     }
@@ -2910,7 +2947,7 @@ phDnldNfc_Receive_Complete (
                                 != psDnldContext->raw_mode_upgrade)
                     {
 
-                       psDnldContext->raw_mode_upgrade =
+                       psDnldContext->raw_mode_upgrade = (uint8_t)
                         (psDnldContext->raw_mode_upgrade &
                             ~( psDnldContext->cur_frame_info & ~PHDNLD_MARKER_MASK ));
                     }
@@ -2951,7 +2988,7 @@ phDnldNfc_Receive_Complete (
 #endif
                     else
                     {
-                       psDnldContext->raw_mode_upgrade =
+                       psDnldContext->raw_mode_upgrade = (uint8_t)
                         (psDnldContext->raw_mode_upgrade &
                             ~( psDnldContext->cur_frame_info & ~PHDNLD_MARKER_MASK ));
                     }
@@ -2961,8 +2998,8 @@ phDnldNfc_Receive_Complete (
                                   was Successful in the Download Mode */
                 case PHDNLD_RESP_CHAINING_SUCCESS:
                 {
-					/* TODO: Handle the Corner Case Scenarios
-					 *       the updated status */
+                    /* TODO: Handle the Corner Case Scenarios
+                     *       the updated status */
                     psDnldContext->dnld_retry = 0x00;
                     break;
                 }
@@ -3337,8 +3374,6 @@ phDnldNfc_Send_Command(
         {
             psDnldContext->prev_cmd = cmd;
 
-            if( PHDNLD_CMD_RESET == cmd )
-                DO_DELAY(PHDNLD_DNLD_DELAY);  //this seems like its on the wrong thread
         }
     }
 
@@ -3595,7 +3630,6 @@ phDnldNfc_Process_FW(
             psDnldContext->p_fw_raw = (uint8_t *)(nxp_nfc_fw + fw_index);
 
 			psDnldContext->raw_mode_upgrade = PHDNLD_COMPLETE_OPERATION;
-
             (void)phDnldNfc_Set_Seq(psDnldContext,
                                             DNLD_SEQ_RAW);
         }
@@ -3617,7 +3651,7 @@ phDnldNfc_Run_Check(
                         phHal_sHwReference_t    *pHwRef
 #ifdef NXP_FW_PARAM
                         ,uint8_t                 *nxp_nfc_fw
-                         uint32_t                  fw_length
+                        ,uint32_t                  fw_length
 #endif
                    )
 {
@@ -3702,7 +3736,6 @@ NFCSTATUS
 phDnldNfc_Upgrade (
                         phHal_sHwReference_t            *pHwRef,
 #ifdef NXP_FW_PARAM
-                        uint8_t                          type,
                         uint8_t                         *nxp_nfc_fw,
                         uint32_t                         fw_length,
 #endif
@@ -3715,8 +3748,6 @@ phDnldNfc_Upgrade (
     phNfcIF_sCallBack_t     if_callback = { NULL, NULL, NULL, NULL };
     phNfc_sLowerIF_t        *plower_if = NULL;
     NFCSTATUS                status = NFCSTATUS_SUCCESS;
-    section_info_t          *p_cur_sec = NULL;
-    unsigned                sec_type = 0;
 
     if( (NULL == pHwRef)
       )
@@ -3768,7 +3799,7 @@ phDnldNfc_Upgrade (
 
                 status = phDnldNfc_Process_FW( psDnldContext, pHwRef
 #ifdef NXP_FW_PARAM
-                ,*nxp_nfc_fw , fw_length
+                , nxp_nfc_fw , fw_length
 #endif
                  );
 
