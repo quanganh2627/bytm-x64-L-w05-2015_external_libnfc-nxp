@@ -292,6 +292,7 @@ void phLlcNfc_H_Frame_Init (
         psLlcCtxt->s_frameinfo.n_s = 0;
         psLlcCtxt->s_frameinfo.n_r = 0;
         psLlcCtxt->s_frameinfo.rejected_ns = DEFAULT_PACKET_INPUT;
+        pthread_mutex_init(&psLlcCtxt->s_frameinfo.write_protect_mutex, NULL);
     }
 }
 
@@ -302,6 +303,7 @@ phLlcNfc_H_Frame_DeInit (
 {
     if (NULL != psFrameInfo)
     {
+        pthread_mutex_destroy(&psFrameInfo->write_protect_mutex);
         /* Empty the frame information */
         (void)memset(&psFrameInfo->s_llcpacket, 0,
             sizeof(phLlcNfc_LlcPacket_t));

@@ -42,6 +42,7 @@
 /*@}*/
 /*************************** Includes *******************************/
 #include <phNfcCompId.h>
+#include <pthread.h>
 /*********************** End of includes ****************************/
 /***************************** Macros *******************************/
 
@@ -598,6 +599,8 @@ typedef struct phLlcNfc_Frame
 
     /** Depending on the "write_status", write call has to be called */
     phLlcNfc_eSentFrameType_t       write_wait_call;
+
+    pthread_mutex_t                 write_protect_mutex;
 }phLlcNfc_Frame_t;
 /*@}*/
 
