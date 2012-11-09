@@ -322,6 +322,12 @@
 #define NXP_HAL_ENABLE_SMX 
 #endif
 
+/**< Macro to Enable device sanity checking at
+ * initialisation */
+#ifndef DEVICE_SANITY_CHECK_AT_INIT
+#define DEVICE_SANITY_CHECK_AT_INIT 0
+#endif
+
 /**< Macro to Enable the Host Session
  * Initialisation */
 #define ESTABLISH_SESSION

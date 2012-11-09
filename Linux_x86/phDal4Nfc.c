@@ -546,6 +546,10 @@ NFCSTATUS phDal4Nfc_Config(pphDal4Nfc_sConfig_t config,void **phwref)
    uint8_t num_eeprom_settings;
    uint8_t* eeprom_settings;
    int ret;
+#if (DEVICE_SANITY_CHECK_AT_INIT == 1)
+   char rset_cmd[] = {0x05, 0xF9, 0x04, 0x00, 0xC3, 0xE5};
+   int num_bytes_written, i;
+#endif
 
    /* Retrieve the hw module from the Android NFC HAL */
    ret = hw_get_module(NFC_HARDWARE_MODULE_ID, &hw_module);
@@ -646,10 +650,33 @@ NFCSTATUS phDal4Nfc_Config(pphDal4Nfc_sConfig_t config,void **phwref)
       return PHNFCSTVAL(CID_NFC_DAL, NFCSTATUS_FAILED);
    }
 
-   gDalContext.hw_valid = TRUE;
    phDal4Nfc_Reset(1);
    phDal4Nfc_Reset(0);
    phDal4Nfc_Reset(1);
+
+#if (DEVICE_SANITY_CHECK_AT_INIT == 1)
+   /* Send a Reset command to validate the device and link is up. Retry up to 3 times */
+   for (i=0; i<3; i++)
+   {
+      usleep(10000); /* Wait 10 ms for the device to become ready after the reset/standby wakeup */
+      num_bytes_written = gLinkFunc.write(rset_cmd, sizeof(rset_cmd));
+      if (num_bytes_written != sizeof(rset_cmd))
+      {
+         DAL_PRINT("phDal4Nfc_Config: Physical Write Error !!! \n");
+      }
+      else {
+         /* All is OK */
+         break;
+      }
+   }
+   if (num_bytes_written != sizeof(rset_cmd))
+   {
+      /* Failed 3 consecutive write attempts. Something is definitely wrong */
+      return PHNFCSTVAL(CID_NFC_DAL, NFCSTATUS_FAILED);
+   }
+#endif
+
+   gDalContext.hw_valid = TRUE;
 
    return NFCSTATUS_SUCCESS;
 }
