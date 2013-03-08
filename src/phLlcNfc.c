@@ -395,6 +395,7 @@ phLlcNfc_Send (
         /* Copy the hardware information */
         ps_llc_ctxt->phwinfo = pLinkInfo;
 
+        PH_LLCNFC_PRINT("Lock the write mutex in LLC send\n");
         pthread_mutex_lock(&ps_frame_info->write_protect_mutex);
 
         /* Create I frame with the user buffer  */
@@ -464,6 +465,7 @@ phLlcNfc_Send (
                             ps_frame_info->write_wait_call : user_i_frame);
         }
 
+        PH_LLCNFC_PRINT("Unlock the write mutex in LLC send\n");
         pthread_mutex_unlock(&ps_frame_info->write_protect_mutex);
     }
 
