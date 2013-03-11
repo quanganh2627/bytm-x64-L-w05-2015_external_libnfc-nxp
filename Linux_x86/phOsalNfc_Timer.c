@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <time.h>
-#include <semaphore.h>
 
 #include <phOsalNfc.h>
 #include <phOsalNfc_Timer.h>
@@ -51,7 +50,6 @@ struct phOsalNfc_Timer
    void* pContext;         /*!< Callback context. */
 #ifdef NXP_MESSAGING
    void *ptr;
-   sem_t nDeferredTimerCallbackSemaphore;
 #endif
    int nIsStopped;
 };
@@ -61,7 +59,6 @@ static struct phOsalNfc_Timer timers[MAX_NO_TIMERS] =
    {0, NULL, NULL
 #ifdef NXP_MESSAGING
      , NULL
-     , {0}
 #endif
      , 0
    },
@@ -93,11 +90,6 @@ void phOsalNfc_Timer_DeferredCall(void *params)
          phOsalNfc_FreeMemory(timers[timer_msg->TimerId].ptr);
          timers[timer_msg->TimerId].ptr = NULL;
       }
-      /*
-       * Post the semaphore to signal the completion of this deferred timer
-       * callback execution.
-       */
-      sem_post(&timers[timer_msg->TimerId].nDeferredTimerCallbackSemaphore);
    }
    phOsalNfc_FreeMemory(timer_msg);
 }
@@ -155,13 +147,6 @@ static void phOsalNfc_Timer_Expired(union sigval sv)
       wrapper.msg.pMsgData = osal_defer_msg;
       wrapper.msg.Size = sizeof(phOsalNfc_DeferedCalldInfo_t);
 
-      /*
-       * The semaphore below will make us wait until the previous defered
-       * timer callback execution has completed. This is to prevent us from
-       * prematurely overwriting the global variable "timers[timerid].ptr",
-       * which is referenced by the deferred timer callback function.
-       */
-      sem_wait(&timers[timerid].nDeferredTimerCallbackSemaphore);
       timers[timerid].ptr = osal_defer_msg;
 
       phDal4Nfc_msgsnd(nDeferedCallMessageQueueId, (void *)&wrapper,
@@ -206,13 +191,6 @@ uint32_t phOsalNfc_Timer_Create(void)
    timers[timerid].callback = phOsalNfc_Timer_Dummy_Cb;
 #ifdef NXP_MESSAGING
    timers[timerid].ptr = NULL;
-   /*
-    * Semaphore initialize. The semaphore is used to serialize the executions
-    * of the deferred timer callback function. Initial value is 1 to allow the
-    * first execution to take place.
-    */
-   if (sem_init (&timers[timerid].nDeferredTimerCallbackSemaphore, 0, 1) == -1)
-      return PH_OSALNFC_INVALID_TIMER_ID;
 #endif
 
    return timerid;
@@ -297,7 +275,4 @@ void phOsalNfc_Timer_Delete(uint32_t TimerId)
 
    timers[TimerId].callback = NULL;
    timers[TimerId].pContext = NULL;
-#ifdef NXP_MESSAGING
-   sem_destroy(&timers[TimerId].nDeferredTimerCallbackSemaphore);
-#endif
 }

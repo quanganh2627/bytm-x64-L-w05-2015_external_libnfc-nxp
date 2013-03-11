@@ -395,8 +395,6 @@ phLlcNfc_Send (
         /* Copy the hardware information */
         ps_llc_ctxt->phwinfo = pLinkInfo;
 
-        pthread_mutex_lock(&ps_frame_info->write_protect_mutex);
-
         /* Create I frame with the user buffer  */
         (void)phLlcNfc_H_CreateIFramePayload (
                                 &(ps_llc_ctxt->s_frameinfo), 
@@ -463,8 +461,6 @@ phLlcNfc_Send (
                             ((resend_i_frame == ps_frame_info->write_wait_call) ? 
                             ps_frame_info->write_wait_call : user_i_frame);
         }
-
-        pthread_mutex_unlock(&ps_frame_info->write_protect_mutex);
     }
 
     
