@@ -42,6 +42,7 @@
 /*@}*/
 /*************************** Includes *******************************/
 #include <phNfcCompId.h>
+#include <pthread.h>
 /*********************** End of includes ****************************/
 /***************************** Macros *******************************/
 
@@ -51,25 +52,31 @@
     #include <stdio.h>
 
     extern char                 phOsalNfc_DbgTraceBuffer[];
+    extern bool_t phOsalNfc_EnableLogging_LLC;
     #define trace_buffer        phOsalNfc_DbgTraceBuffer
 
     #define MAX_TRACE_BUFFER    150
-    #define PH_LLCNFC_PRINT( str )  phOsalNfc_DbgString(str)
+    #define PH_LLCNFC_PRINT( str )  { if (phOsalNfc_EnableLogging_LLC) { phOsalNfc_DbgString(str); } }
     #define PH_LLCNFC_PRINT_DATA(buf,len)
     #define PH_LLCNFC_STRING( str )
     #define PH_LLCNFC_DEBUG(str, arg) \
-    {                                       \
-        snprintf(trace_buffer,MAX_TRACE_BUFFER,str,arg);   \
-        phOsalNfc_DbgString(trace_buffer);                 \
+    { \
+        if (phOsalNfc_EnableLogging_LLC) { \
+            snprintf(trace_buffer,MAX_TRACE_BUFFER,str,arg);   \
+            phOsalNfc_DbgString(trace_buffer);                 \
+        } \
     }
     #define PH_LLCNFC_PRINT_BUFFER(buf,len)     \
     {                                       \
-        /* uint16_t i = 0;                  \
-        char        trace_buffer[MAX_TRACE_BUFFER];                    \
-        snprintf(trace_buffer,MAX_TRACE_BUFFER,"\n\t %s:",msg);    \ 
-        phOsalNfc_DbgString(trace);                 */\
-        phOsalNfc_DbgTrace(buf,len);            \
-        phOsalNfc_DbgString("\r");              \
+        if (phOsalNfc_EnableLogging_LLC) \
+        { \
+            /* uint16_t i = 0;                  \
+            char        trace_buffer[MAX_TRACE_BUFFER];                    \
+            snprintf(trace_buffer,MAX_TRACE_BUFFER,"\n\t %s:",msg);    \
+            phOsalNfc_DbgString(trace);                 */\
+            phOsalNfc_DbgTrace(buf,len);            \
+            phOsalNfc_DbgString("\r");              \
+        } \
     }
 #endif /* #if defined (LLC_TRACE) */
 
@@ -592,6 +599,8 @@ typedef struct phLlcNfc_Frame
 
     /** Depending on the "write_status", write call has to be called */
     phLlcNfc_eSentFrameType_t       write_wait_call;
+
+    pthread_mutex_t                 write_protect_mutex;
 }phLlcNfc_Frame_t;
 /*@}*/
 

@@ -73,7 +73,7 @@
 */
 
 #ifndef NXP_FW_PARAM
-extern const uint8_t *nxp_nfc_fw;
+extern const uint8_t nxp_nfc_fw[];
 #endif /* NXP_FW_PARAM */
 
 
@@ -126,7 +126,7 @@ phDnldNfc_Run_Check(
                         phHal_sHwReference_t    *pHwRef
 #ifdef NXP_FW_PARAM
                         ,uint8_t                 *nxp_nfc_fw
-                        uint32_t                  fw_length
+                        ,uint32_t                  fw_length
 #endif
                    );
 #endif /* #if  !defined (NXP_FW_INTEGRITY_VERIFY) */
