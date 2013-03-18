@@ -301,6 +301,8 @@ phLlcNfc_WrResp_Cb(
     
     if ((NULL != ps_llc_ctxt) && (NULL != pCompInfo) && (NULL != pHwInfo))
     {
+        PH_LLCNFC_PRINT("Lock the write mutex in WRITE response callback\n");
+        pthread_mutex_lock(&ps_llc_ctxt->s_frameinfo.write_protect_mutex);
         ps_llc_ctxt->s_frameinfo.write_pending = FALSE;
 
         PHNFC_UNUSED_VARIABLE(result);
@@ -426,6 +428,8 @@ phLlcNfc_WrResp_Cb(
                         {                            
                             pCompInfo->length = (pCompInfo->length - 
                                                 PH_LLCNFC_APPEND_LEN);
+                            PH_LLCNFC_PRINT("Unlock the write mutex in case I frame is sent\n");
+                            pthread_mutex_unlock(&ps_llc_ctxt->s_frameinfo.write_protect_mutex);
                             ps_llc_ctxt->cb_for_if.send_complete (
                                         ps_llc_ctxt->cb_for_if.pif_ctxt, 
                                         pHwInfo, pCompInfo);
@@ -517,6 +521,8 @@ phLlcNfc_WrResp_Cb(
                         {
                             pCompInfo->length = (pCompInfo->length - 
                                                 PH_LLCNFC_APPEND_LEN);
+                            PH_LLCNFC_PRINT("Unlock the write mutex in case of I frame resend\n");
+                            pthread_mutex_unlock(&ps_llc_ctxt->s_frameinfo.write_protect_mutex);
                             ps_llc_ctxt->cb_for_if.send_complete(
                                         ps_llc_ctxt->cb_for_if.pif_ctxt, 
                                         pHwInfo, pCompInfo);
@@ -644,11 +650,16 @@ phLlcNfc_WrResp_Cb(
                         ps_llc_ctxt->s_frameinfo.s_send_store.winsize_cnt--;
                     }
                 }
+                PH_LLCNFC_PRINT("Unlock the write mutex in case of unsuccessful write\n");
+                pthread_mutex_unlock(&ps_llc_ctxt->s_frameinfo.write_protect_mutex);
                 ps_llc_ctxt->cb_for_if.send_complete(
                                     ps_llc_ctxt->cb_for_if.pif_ctxt, 
                                     pHwInfo, pCompInfo);
             }
         }
+
+        PH_LLCNFC_PRINT("Unlock the write mutex in WRITE response callback\n");
+        pthread_mutex_unlock(&ps_llc_ctxt->s_frameinfo.write_protect_mutex);
     }
     PH_LLCNFC_PRINT("\n\nLLC : WRITE RESP CB END\n\n");
 }
