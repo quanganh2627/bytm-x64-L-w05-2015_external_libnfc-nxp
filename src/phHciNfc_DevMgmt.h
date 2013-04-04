@@ -85,6 +85,7 @@
 #define NFC_ADDRESS_UICC_CE_B_ACCESS    0x9EDCU
 #define NFC_ADDRESS_UICC_CE_BP_ACCESS   0x9EDDU
 #define NFC_ADDRESS_UICC_CE_F_ACCESS    0x9EDEU
+#define NFC_ADDRESS_UICC_CE_F_CLT_SUP   0x9E77U
 
 /* Address Definitions for SE Configuration */
 
