@@ -256,7 +256,9 @@
 #define NXP_NFCIP_ACTIVE_DEFAULT        0x01U
 #endif
 
-
+#ifndef NXP_NFC_FELICA_CLT_SUPPORT
+#define NXP_NFC_FELICA_CLT_SUPPORT      0x00U
+#endif
 
 
 #ifndef NXP_NFC_HCI_TIMER

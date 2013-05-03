@@ -62,6 +62,7 @@ extern int dlopen_firmware();
 
 
 pphLibNfc_LibContext_t gpphLibContext=NULL;
+uint8_t                g_start_release_flag=FALSE;
 
 /*
 *************************** Static Function Declaration ***********************
@@ -91,7 +92,9 @@ NFCSTATUS phLibNfc_Mgt_ConfigureDriver (pphLibNfc_sConfig_t     psConfig,
     if(NULL != gpphLibContext)
     {
         return NFCSTATUS_ALREADY_INITIALISED;
-    }   
+    }
+
+    g_start_release_flag = FALSE;
 
     return phDal4Nfc_Config(psConfig, ppDriverHandle);
 }
@@ -371,6 +374,7 @@ NFCSTATUS phLibNfc_Mgt_DeInitialize(void *                      pDriverHandle,
     }
     else
     {
+        g_start_release_flag = TRUE;
         if(pDeInitCb==NULL)
         {
             phHal4Nfc_Hal4Reset(pLibContext->psHwReference,(void *)pLibContext);
