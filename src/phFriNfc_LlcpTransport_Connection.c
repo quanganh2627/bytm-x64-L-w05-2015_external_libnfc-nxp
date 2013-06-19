@@ -214,7 +214,7 @@ NFCSTATUS phFriNfc_LlcpTransport_ConnectionOriented_HandlePendingOperations(phFr
          result =  phFriNfc_LlcpTransport_LinkSend(psTransport,
                                    &pSocket->sLlcpHeader,
                                    NULL,
-                                   &pSocket->sSocketSendBuffer,
+                                   NULL,
                                    phFriNfc_LlcpTransport_ConnectionOriented_SendLlcp_CB,
                                    pSocket->index,
                                    psTransport);
