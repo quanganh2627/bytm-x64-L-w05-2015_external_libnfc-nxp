@@ -122,6 +122,8 @@ NFCSTATUS phLibNfc_HW_Reset ()
 
 NFCSTATUS phLibNfc_Download_Mode ()
 {
+   g_start_release_flag = FALSE;
+
    return phDal4Nfc_Download();
 }
 
@@ -137,7 +139,8 @@ int phLibNfc_Load_Firmware_Image ()
 void phLibNfc_Mgt_Recovery ()
 {
     /* Wait before recovery if wired mode */
-    if (gpphLibContext->sSeContext.eActivatedMode == phLibNfc_SE_ActModeWired)
+    if (gpphLibContext != NULL &&
+        gpphLibContext->sSeContext.eActivatedMode == phLibNfc_SE_ActModeWired)
     {
         usleep (12000000);
     }
