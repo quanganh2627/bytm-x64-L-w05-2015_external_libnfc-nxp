@@ -75,6 +75,7 @@ phLlcNfc_RdResp_Cb(
 
 /********************** Global variables ****************************/
 int libnfc_llc_error_count = 0;
+extern uint8_t g_release_flag;
 
 /******************** End of Global Variables ***********************/
 
@@ -161,7 +162,13 @@ phLlcNfc_Interface_Read(
             callback function
     */
     PH_LLCNFC_PRINT("Llc Dal Interface Read called\n");
-    if ((NULL == psLlcCtxt) || (NULL == pLlcBuffer) || 
+    if (g_release_flag)
+    {
+        PH_LLCNFC_PRINT("LLC shutting down\n");
+        result = PHNFCSTVAL(CID_NFC_LLC, NFCSTATUS_NOT_ALLOWED);
+    }
+    else
+    if ((NULL == psLlcCtxt) || (NULL == pLlcBuffer) ||
         (0 == llcBufferLength) || (NULL == psLlcCtxt->lower_if.receive) || 
         (readWaitOn > PH_LLCNFC_READWAIT_ON))
     {
