@@ -110,6 +110,7 @@ typedef enum phHciNfc_DevMgmt_Seq{
     DEV_MGMT_UICC_CE_B_ACCESS,
     DEV_MGMT_UICC_CE_BP_ACCESS,
     DEV_MGMT_UICC_CE_F_ACCESS,
+    DEV_MGMT_UICC_CE_F_CLT_SUPPORT,
     DEV_MGMT_UICC_RD_A_ACCESS,
     DEV_MGMT_UICC_RD_B_ACCESS,
     DEV_MGMT_UICC_BIT_RATE,
@@ -831,7 +832,7 @@ phHciNfc_DevMgmt_Initialise(
                 }
                 case DEV_MGMT_UICC_CE_F_ACCESS:
                 {
-#if defined(HOST_EMULATION) || ( NXP_UICC_CE_RIGHTS & 0x08 )
+#if ( NXP_UICC_CE_RIGHTS & 0x08 ) || (NXP_NFC_FELICA_CLT_SUPPORT & 0x01 )
                     config = (uint8_t) phHciNfc_CETypeFGate;
 #else
                     config = 0xFFU;
@@ -840,11 +841,31 @@ phHciNfc_DevMgmt_Initialise(
                             NFC_ADDRESS_UICC_CE_F_ACCESS , config );
                     if(NFCSTATUS_PENDING == status )
                     {
+#if ( NXP_UICC_CE_RIGHTS & 0x08 ) || (NXP_NFC_FELICA_CLT_SUPPORT & 0x01 )
+                        p_device_mgmt_info->next_seq =
+                                                DEV_MGMT_UICC_CE_F_CLT_SUPPORT;
+#else
                         p_device_mgmt_info->next_seq =
                                                 DEV_MGMT_UICC_BIT_RATE;
+#endif /* #if ( NXP_UICC_CE_RIGHTS & 0x08 ) */
                     }
                     break;
                 }
+#if ( NXP_UICC_CE_RIGHTS & 0x08 ) || (NXP_NFC_FELICA_CLT_SUPPORT & 0x01 )
+                case DEV_MGMT_UICC_CE_F_CLT_SUPPORT:
+                {
+                    HCI_PRINT("DEV_MGMT_UICC_CE_F_CLT_SUPPORT\n");
+                    config = (uint8_t) NXP_NFC_FELICA_CLT_SUPPORT;
+                    status = phHciNfc_DevMgmt_Configure( psHciContext, pHwRef,
+                            NFC_ADDRESS_UICC_CE_F_CLT_SUP , config );
+                    if(NFCSTATUS_PENDING == status )
+                    {
+                        p_device_mgmt_info->next_seq =
+                                                 DEV_MGMT_UICC_BIT_RATE;
+                    }
+                    break;
+                }
+#endif /* #if ( NXP_UICC_CE_RIGHTS & 0x08 ) */
                 case DEV_MGMT_UICC_BIT_RATE:
                 {
                     config = NXP_UICC_BIT_RATE;

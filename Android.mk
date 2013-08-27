@@ -104,7 +104,7 @@ LOCAL_SRC_FILES += Linux_x86/phDal4Nfc.c
 LOCAL_SRC_FILES += Linux_x86/phDal4Nfc_i2c.c
 LOCAL_SRC_FILES += Linux_x86/phDal4Nfc_messageQueueLib.c
 
-LOCAL_CFLAGS += -DNXP_MESSAGING -DANDROID -DNFC_TIMER_CONTEXT -fno-strict-aliasing
+LOCAL_CFLAGS += -DNXP_MESSAGING -DANDROID -DNFC_TIMER_CONTEXT -DNXP_FW_PARAM -DNXP_FW_DNLD_DIAGNOSTICS -fno-strict-aliasing
 
 ifeq ($(TARGET_HAS_NFC_CUSTOM_CONFIG),true)
 LOCAL_CFLAGS += -DNFC_CUSTOM_CONFIG_INCLUDE
@@ -116,16 +116,16 @@ endif
 # LOCAL_CFLAGS += -DLOW_LEVEL_TRACES
 
 # Uncomment for DAL traces
-# LOCAL_CFLAGS += -DDEBUG -DDAL_TRACE
+LOCAL_CFLAGS += -DDEBUG -DDAL_TRACE
 
 # Uncomment for LLC traces
-# LOCAL_CFLAGS += -DDEBUG -DLLC_TRACE
+LOCAL_CFLAGS += -DDEBUG -DLLC_TRACE
 
 # Uncomment for LLCP traces
-# LOCAL_CFLAGS += -DDEBUG -DLLCP_TRACE
+LOCAL_CFLAGS += -DDEBUG -DLLCP_TRACE
 
 # Uncomment for HCI traces
-# LOCAL_CFLAGS += -DDEBUG -DHCI_TRACE
+LOCAL_CFLAGS += -DDEBUG -DHCI_TRACE
 
 #includes
 LOCAL_CFLAGS += -I$(LOCAL_PATH)/inc
@@ -134,7 +134,7 @@ LOCAL_CFLAGS += -I$(LOCAL_PATH)/src
 
 LOCAL_MODULE:= libnfc
 LOCAL_MODULE_TAGS := optional
-LOCAL_SHARED_LIBRARIES := libcutils libnfc_ndef libdl libhardware
+LOCAL_SHARED_LIBRARIES := libcutils libnfc_ndef libdl libhardware liblog
 
 include $(BUILD_SHARED_LIBRARY)
 
@@ -151,6 +151,6 @@ LOCAL_CFLAGS += -I$(LOCAL_PATH)/src
 
 LOCAL_MODULE:= libnfc_ndef
 LOCAL_MODULE_TAGS := optional
-LOCAL_SHARED_LIBRARIES := libcutils
+LOCAL_SHARED_LIBRARIES := libcutils liblog
 
 include $(BUILD_SHARED_LIBRARY)

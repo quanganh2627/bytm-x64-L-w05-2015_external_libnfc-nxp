@@ -54,19 +54,26 @@
 #include <phOsalNfc.h>
 #include <stdio.h>
 extern char phOsalNfc_DbgTraceBuffer[];
+extern bool_t phOsalNfc_EnableLogging_LLCP;
 #define LLCP_MAX_TRACE_BUFFER   150
-#define LLCP_PRINT( str )  phOsalNfc_DbgString(str)
+#define LLCP_PRINT( str )  { if (phOsalNfc_EnableLogging_LLCP) { phOsalNfc_DbgString(str); } }
 #define LLCP_DEBUG(str, arg) \
    {                                                                    \
-      snprintf(phOsalNfc_DbgTraceBuffer,LLCP_MAX_TRACE_BUFFER,str,arg); \
-      phOsalNfc_DbgString(phOsalNfc_DbgTraceBuffer);                    \
+       if (phOsalNfc_EnableLogging_LLCP) \
+       { \
+        snprintf(phOsalNfc_DbgTraceBuffer,LLCP_MAX_TRACE_BUFFER,str,arg); \
+        phOsalNfc_DbgString(phOsalNfc_DbgTraceBuffer);                    \
+       } \
    }
 #define LLCP_PRINT_BUFFER(msg,buf,len) \
    {                                                                             \
-      snprintf(phOsalNfc_DbgTraceBuffer,LLCP_MAX_TRACE_BUFFER,"\n\t %s:",msg);   \
-      phOsalNfc_DbgString(phOsalNfc_DbgTraceBuffer);                             \
-      phOsalNfc_DbgTrace(buf,len);                                               \
-      phOsalNfc_DbgString("\r");                                                 \
+       if (phOsalNfc_EnableLogging_LLCP) \
+       { \
+          snprintf(phOsalNfc_DbgTraceBuffer,LLCP_MAX_TRACE_BUFFER,"\n\t %s:",msg);   \
+          phOsalNfc_DbgString(phOsalNfc_DbgTraceBuffer);                             \
+          phOsalNfc_DbgTrace(buf,len);                                               \
+          phOsalNfc_DbgString("\r");                                                 \
+       } \
    }
 #else
 #define LLCP_PRINT( str ) 
@@ -219,6 +226,12 @@ typedef void (*phFriNfc_Llcp_Check_CB_t) (
 typedef void (*phFriNfc_Llcp_LinkStatus_CB_t) (
    void                             *pContext,
    phFriNfc_Llcp_eLinkStatus_t      eLinkStatus
+);
+
+typedef void (*phFriNfc_Llcp_LinkSend_CB_t) (
+   void                             *pContext,
+   uint8_t                          socketIndex,
+   NFCSTATUS                        status
 );
 
 typedef void (*phFriNfc_Llcp_Send_CB_t) (

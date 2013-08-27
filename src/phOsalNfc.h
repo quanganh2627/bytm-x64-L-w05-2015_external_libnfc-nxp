@@ -40,6 +40,11 @@
 #include <phNfcCustomInt.h>
 #else
 #include <memory.h>
+#include <stdlib.h>
+
+#ifdef ANDROID
+#include <cutils/properties.h>
+#endif
 
 /**< OSAL Message Type */
 #ifdef WIN32
@@ -108,6 +113,27 @@ extern phOsalNfc_Exception_t phOsalNfc_Exception;
     The given semaphore could not be consumed due to a
     system error or invalid handle. */
 #define NFCSTATUS_SEMAPHORE_CONSUME_ERROR                       (0x1012) 
+
+/*!
+ * \ingroup grp_osal_nfc
+ * \brief Initializes logging verbosity based on the debug.nfc.yyy property.
+ *
+ *          yyy is either:
+ *          - DAL_TRACE
+ *          - LLC_TRACE
+ *          - LLCP_TRACE
+ *          - HCI_TRACE
+ *
+ *          ex:
+ *          adb shell setprop debug.nfc.HCI_TRACE 1 : enable HCI messages logging
+ *          adb shell setprop debug.nfc.HCI_TRACE 0 : disable HCI messages logging
+ *
+ * \param   None
+ *
+ * \retval  None
+ *
+ */
+void phOsalNfc_InitLogging(void);
 
 
 /*!

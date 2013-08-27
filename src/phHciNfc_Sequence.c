@@ -456,7 +456,7 @@ phHciNfc_FSM_Validate(
             } /* End of State Validation Switch */
             if( NFC_FSM_IN_PROGRESS == psHciContext->hci_state.transition )
             {
-                status = PHNFCSTVAL(CID_NFC_HCI, NFCSTATUS_INVALID_STATE);
+                status = PHNFCSTVAL(CID_NFC_HCI, NFCSTATUS_BUSY);
             }
             break;
         }
@@ -1482,14 +1482,22 @@ phHciNfc_Release_Sequence(
 
             status = plower_if->release((void *)plower_if->pcontext,
                                             (void *)pHwRef);
+            if(NFCSTATUS_SUCCESS == status)
+            {
+                phHciNfc_Release_Resources( &psHciContext );
+                /* De-Initialisation Complete Notification to the Upper Layer */
+                comp_info.status = status;
+                phHciNfc_Notify(p_upper_notify, pcontext, pHwRef,
+                                        NFC_NOTIFY_DEINIT_COMPLETED, &comp_info);
 
-            phHciNfc_Release_Resources( &psHciContext );
-            /* De-Initialisation Complete Notification to the Upper Layer */
-            comp_info.status = status;
-            phHciNfc_Notify(p_upper_notify, pcontext, pHwRef,
-                                    NFC_NOTIFY_DEINIT_COMPLETED, &comp_info);
-
-            HCI_PRINT("HCI Release Completed \n");
+                HCI_PRINT("HCI Release Completed \n");
+            }
+            else
+            {
+                psHciContext->hci_seq = HCI_END_SEQ;
+                status = NFCSTATUS_PENDING;
+                HCI_PRINT("LLC busy - try later\n");
+            }
             break;
         }
         default:
