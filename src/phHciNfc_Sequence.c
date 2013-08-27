@@ -1482,22 +1482,14 @@ phHciNfc_Release_Sequence(
 
             status = plower_if->release((void *)plower_if->pcontext,
                                             (void *)pHwRef);
-            if(NFCSTATUS_SUCCESS == status)
-            {
-                phHciNfc_Release_Resources( &psHciContext );
-                /* De-Initialisation Complete Notification to the Upper Layer */
-                comp_info.status = status;
-                phHciNfc_Notify(p_upper_notify, pcontext, pHwRef,
-                                        NFC_NOTIFY_DEINIT_COMPLETED, &comp_info);
 
-                HCI_PRINT("HCI Release Completed \n");
-            }
-            else
-            {
-                psHciContext->hci_seq = HCI_END_SEQ;
-                status = NFCSTATUS_PENDING;
-                HCI_PRINT("LLC busy - try later\n");
-            }
+            phHciNfc_Release_Resources( &psHciContext );
+            /* De-Initialisation Complete Notification to the Upper Layer */
+            comp_info.status = status;
+            phHciNfc_Notify(p_upper_notify, pcontext, pHwRef,
+                                    NFC_NOTIFY_DEINIT_COMPLETED, &comp_info);
+
+            HCI_PRINT("HCI Release Completed \n");
             break;
         }
         default:

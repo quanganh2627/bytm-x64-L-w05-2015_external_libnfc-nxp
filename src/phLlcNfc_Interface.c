@@ -51,7 +51,6 @@
 /***************************** Macros *******************************/
 #define PH_LLCNFC_APPEND_LEN                        (4)
 #define LLC_NS_FRAME_HEADER_MASK                    (0x38U)
-#define URSET_DEGRADED_MODE_RESPONSE_HANDLING
 /************************ End of macros *****************************/
 
 /*********************** Local functions ****************************/
@@ -75,7 +74,6 @@ phLlcNfc_RdResp_Cb(
 
 /********************** Global variables ****************************/
 int libnfc_llc_error_count = 0;
-extern uint8_t g_release_flag;
 
 /******************** End of Global Variables ***********************/
 
@@ -162,13 +160,7 @@ phLlcNfc_Interface_Read(
             callback function
     */
     PH_LLCNFC_PRINT("Llc Dal Interface Read called\n");
-    if (g_release_flag)
-    {
-        PH_LLCNFC_PRINT("LLC shutting down\n");
-        result = PHNFCSTVAL(CID_NFC_LLC, NFCSTATUS_NOT_ALLOWED);
-    }
-    else
-    if ((NULL == psLlcCtxt) || (NULL == pLlcBuffer) ||
+    if ((NULL == psLlcCtxt) || (NULL == pLlcBuffer) || 
         (0 == llcBufferLength) || (NULL == psLlcCtxt->lower_if.receive) || 
         (readWaitOn > PH_LLCNFC_READWAIT_ON))
     {
@@ -308,8 +300,6 @@ phLlcNfc_WrResp_Cb(
     
     if ((NULL != ps_llc_ctxt) && (NULL != pCompInfo) && (NULL != pHwInfo))
     {
-        PH_LLCNFC_PRINT("Lock the write mutex in WRITE response callback\n");
-        pthread_mutex_lock(&ps_llc_ctxt->s_frameinfo.write_protect_mutex);
         ps_llc_ctxt->s_frameinfo.write_pending = FALSE;
 
         PHNFC_UNUSED_VARIABLE(result);
@@ -435,8 +425,6 @@ phLlcNfc_WrResp_Cb(
                         {                            
                             pCompInfo->length = (pCompInfo->length - 
                                                 PH_LLCNFC_APPEND_LEN);
-                            PH_LLCNFC_PRINT("Unlock the write mutex in case I frame is sent\n");
-                            pthread_mutex_unlock(&ps_llc_ctxt->s_frameinfo.write_protect_mutex);
                             ps_llc_ctxt->cb_for_if.send_complete (
                                         ps_llc_ctxt->cb_for_if.pif_ctxt, 
                                         pHwInfo, pCompInfo);
@@ -528,8 +516,6 @@ phLlcNfc_WrResp_Cb(
                         {
                             pCompInfo->length = (pCompInfo->length - 
                                                 PH_LLCNFC_APPEND_LEN);
-                            PH_LLCNFC_PRINT("Unlock the write mutex in case of I frame resend\n");
-                            pthread_mutex_unlock(&ps_llc_ctxt->s_frameinfo.write_protect_mutex);
                             ps_llc_ctxt->cb_for_if.send_complete(
                                         ps_llc_ctxt->cb_for_if.pif_ctxt, 
                                         pHwInfo, pCompInfo);
@@ -646,27 +632,11 @@ phLlcNfc_WrResp_Cb(
                 phLlcNfc_StopTimers(PH_LLCNFC_GUARDTIMER, 
                                     ps_llc_ctxt->s_timerinfo.guard_to_count);
                 PH_LLCNFC_DEBUG("Error status received : 0x%x\n", pCompInfo->status);
-                /* Check if we have board communication error, which means that chip doesn't
-                 * respond. Since the sending of the frame was unsuccessful, previously increased
-                 * win size count should be decreased back again. Perhaps a check should be added
-                 * to exclude the S frame sending, but in this case we presume that the chip is
-                 * waken up and it's in the good shape, since with the S frame we acknowledge
-                 *  previously received I or S frame from the chip. */
-                if (NFCSTATUS_BOARD_COMMUNICATION_ERROR == PHNFCSTATUS(pCompInfo->status)) {
-                    if (ps_llc_ctxt->s_frameinfo.s_send_store.winsize_cnt > 0) {
-                        ps_llc_ctxt->s_frameinfo.s_send_store.winsize_cnt--;
-                    }
-                }
-                PH_LLCNFC_PRINT("Unlock the write mutex in case of unsuccessful write\n");
-                pthread_mutex_unlock(&ps_llc_ctxt->s_frameinfo.write_protect_mutex);
                 ps_llc_ctxt->cb_for_if.send_complete(
                                     ps_llc_ctxt->cb_for_if.pif_ctxt, 
                                     pHwInfo, pCompInfo);
             }
         }
-
-        PH_LLCNFC_PRINT("Unlock the write mutex in WRITE response callback\n");
-        pthread_mutex_unlock(&ps_llc_ctxt->s_frameinfo.write_protect_mutex);
     }
     PH_LLCNFC_PRINT("\n\nLLC : WRITE RESP CB END\n\n");
 }
@@ -710,58 +680,6 @@ phLlcNfc_RdResp_Cb(
         
         if (NFCSTATUS_SUCCESS == pCompInfo->status)
         {
-#ifdef URSET_DEGRADED_MODE_RESPONSE_HANDLING
-            if ((init_u_rset_frame == ps_frame_info->sent_frame_type)
-                    && (PH_LLCNFC_MIN_BUFLEN_RECVD == pCompInfo->length)
-                    && ((PH_LLCNFC_MIN_BUFLEN_RECVD + 1)
-                            == *(pCompInfo->buffer))) {
-                /* Sent Frame is URSET and Response Lenght received is 2 */
-                /* Read the remaining bytes of Degraded Mode Response */
-                PH_LLCNFC_PRINT("LLC ReadRsp_Cb : Degrade Mode URSET Response Lenght \n");
-                result = phLlcNfc_Interface_Read(ps_llc_ctxt,
-                        PH_LLCNFC_READWAIT_OFF, (uint8_t *) ps_llc_payload,
-                        (uint32_t)(ps_recv_pkt->s_llcbuf.llc_length_byte));
-
-                if ((NFCSTATUS_PENDING != result) && (NULL
-                        != ps_llc_ctxt->cb_for_if.notify)) {
-                    result = NFCSTATUS_FAILED;
-                    phLlcNfc_StopTimers(PH_LLCNFC_CONNECTIONTIMER, 0);
-                    PH_LLCNFC_PRINT("FW Degraded Mode Initialisation error\n");
-                    notifyinfo.status = result;
-                    /* Copy the upper layer callback pointer and the upper
-                     layer context, after that call release */
-                    notifyul = ps_llc_ctxt->cb_for_if.notify;
-                    p_upperctxt = ps_llc_ctxt->cb_for_if.pif_ctxt;
-                    result = phLlcNfc_Release(ps_llc_ctxt, pHwInfo);
-
-                    /* Wrong result, so Init failed sent */
-                    notifyul(p_upperctxt, pHwInfo, NFC_NOTIFY_INIT_FAILED,
-                            &notifyinfo);
-                }
-
-            } else if ((init_u_rset_frame == ps_frame_info->sent_frame_type)
-                    && ((PH_LLCNFC_MIN_BUFLEN_RECVD + 1) == pCompInfo->length)) {
-                /* The remaining 2 bytes of 02 00 00 degraded response arrived
-                 Stop Timer and Release LLC Resources and Exit with Init Failure */
-                PH_LLCNFC_PRINT("LLC ReadRsp_Cb : Degrade Mode URSET Response bytes \n");
-                result = NFCSTATUS_FAILED;
-                phLlcNfc_StopTimers(PH_LLCNFC_CONNECTIONTIMER, 0);
-
-                if (NULL != ps_llc_ctxt->cb_for_if.notify) {
-                    PH_LLCNFC_PRINT("FW Degraded Mode : Initialisation error\n");
-                    notifyinfo.status = result;
-                    /* Copy the upper layer callback pointer and the upper
-                     layer context, after that call release */
-                    notifyul = ps_llc_ctxt->cb_for_if.notify;
-                    p_upperctxt = ps_llc_ctxt->cb_for_if.pif_ctxt;
-                    result = phLlcNfc_Release(ps_llc_ctxt, pHwInfo);
-
-                    /* Wrong result, so Init failed sent */
-                    notifyul(p_upperctxt, pHwInfo, NFC_NOTIFY_INIT_FAILED,
-                            &notifyinfo);
-                }
-            } else
-#endif /* #ifdef URSET_DEGRADED_MODE_RESPONSE_HANDLING */
             if ((PH_LLCNFC_MIN_BUFLEN_RECVD == pCompInfo->length) &&
                 (((PH_LLCNFC_MIN_BUFLEN_RECVD + 1) < *(pCompInfo->buffer)) &&
                 (PH_LLCNFC_MAX_BUFLEN_RECV_SEND > *(pCompInfo->buffer))))

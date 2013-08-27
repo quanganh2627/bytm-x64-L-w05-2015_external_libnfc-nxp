@@ -214,7 +214,7 @@ NFCSTATUS phFriNfc_LlcpTransport_ConnectionOriented_HandlePendingOperations(phFr
       result =  phFriNfc_LlcpTransport_LinkSend(psTransport,
                                    &pSocket->sLlcpHeader,
                                    NULL,
-                                   NULL,
+                                   &pSocket->sSocketSendBuffer,
                                    phFriNfc_LlcpTransport_ConnectionOriented_SendLlcp_CB,
                                    psTransport);
 
@@ -1655,7 +1655,6 @@ NFCSTATUS phFriNfc_LlcpTransport_ConnectionOriented_Accept(phFriNfc_LlcpTranspor
    uint8_t miux[2];
    uint8_t  i;
 
-   phFriNfc_LlcpTransportSocket_eSocketState_t previous_state = phFriNfc_LlcpTransportSocket_eSocketDefault;
    /* Store the options in the socket */
    memcpy(&pLlcpSocket->sSocketOption, psOptions, sizeof(phFriNfc_LlcpTransport_sSocketOptions_t));
 
@@ -1759,7 +1758,6 @@ NFCSTATUS phFriNfc_LlcpTransport_ConnectionOriented_Accept(phFriNfc_LlcpTranspor
       pLlcpSocket->sLlcpHeader.ssap  = pLlcpSocket->socket_sSap;
 
       /* Set the socket state to accepted */
-      previous_state = pLlcpSocket->eSocket_State;
       pLlcpSocket->eSocket_State           = phFriNfc_LlcpTransportSocket_eSocketAccepted;
 
       /* Update Send Buffer length value */
@@ -1783,7 +1781,6 @@ clean_and_return:
       LLCP_PRINT("Release Accept callback");
       pLlcpSocket->pfSocketAccept_Cb = NULL;
       pLlcpSocket->pAcceptContext = NULL;
-      pLlcpSocket->eSocket_State = previous_state;
    }
 
    return status;

@@ -55,7 +55,6 @@ typedef struct
                                       VARIABLES
 ------------------------------------------------------------------------------------*/
 static phDal4Nfc_I2cPortContext_t gI2cPortContext;
-extern uint8_t                    g_start_release_flag;
 
 
 
@@ -194,7 +193,7 @@ int phDal4Nfc_i2c_read(uint8_t * pBuffer, int nNbBytesToRead)
         FD_SET(gI2cPortContext.nHandle, &rfds);
         tv.tv_sec = 2;
         tv.tv_usec = 0;
-        ret = select(gI2cPortContext.nHandle + 1, &rfds, NULL, NULL, (g_start_release_flag) ? &tv : NULL);
+        ret = select(gI2cPortContext.nHandle + 1, &rfds, NULL, NULL, &tv);
         if (ret < 0) {
             DAL_DEBUG("select() errno=%d", errno);
             if (errno == EINTR || errno == EAGAIN) {
