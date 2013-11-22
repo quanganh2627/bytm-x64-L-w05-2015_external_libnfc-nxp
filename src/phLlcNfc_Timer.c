@@ -848,9 +848,6 @@ phLlcNfc_AckTimeoutCb (
 
         phLlcNfc_StopTimers (PH_LLCNFC_ACKTIMER, 0);
 
-        PH_LLCNFC_PRINT("Lock the write mutex in ACK timeout callback\n");
-        pthread_mutex_lock(&ps_frame_info->write_protect_mutex);
-
         if (NFCSTATUS_BUSY == PHNFCSTATUS (ps_frame_info->write_status))
         {
             /* Any how write cannot be done and some frame is ready to be sent
@@ -882,9 +879,6 @@ phLlcNfc_AckTimeoutCb (
                 }
             }
         }
-
-        PH_LLCNFC_PRINT("Unlock the write mutex in ACK timeout callback\n");
-        pthread_mutex_unlock(&ps_frame_info->write_protect_mutex);
     }
 
     /* ACK is sent, so reset the response received count */

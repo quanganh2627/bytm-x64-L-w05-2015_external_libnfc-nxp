@@ -578,30 +578,8 @@ phHciNfc_Release_Lower(
        )
     {
         /* Start the HCI Response Timer */
-        if (TRUE == psHciContext->dispatch_to_uicc_timeout)
-        {
-#ifdef ANDROID
-            char timeout_property[PROPERTY_VALUE_MAX];
-#endif
-            uint32_t timeout = 30000;
-
-#ifdef ANDROID
-            if (property_get("persist.nfc.uicc_timeout", timeout_property, "30000"))
-            {
-               timeout = atoi(timeout_property);
-            }
-#endif
-
-            phOsalNfc_Timer_Start( hci_resp_timer_id,
-                timeout, phHciNfc_Response_Timeout, NULL );
-            psHciContext->dispatch_to_uicc_timeout = FALSE;
-        }
-        else
-        {
-            phOsalNfc_Timer_Start( hci_resp_timer_id,
+        phOsalNfc_Timer_Start( hci_resp_timer_id,
                 nxp_nfc_hci_response_timeout, phHciNfc_Response_Timeout, NULL );
-        }
-
         HCI_DEBUG(" HCI : Timer %X Started \n", hci_resp_timer_id);
     }
 
@@ -734,10 +712,8 @@ phHciNfc_Receive(
     /* Include the Skipped HCP Header Byte */
     tx_length++;
 
-    psHciContext->tx_retries = 0;
     status = phHciNfc_Send ( (void *) psHciContext, pHwRef,
                         (uint8_t *)tx_data, tx_length );
-    psHciContext->tx_sent = tx_length;
     
     return status;
 }
@@ -1548,28 +1524,11 @@ phHciNfc_Send_Complete (
                                                 Status = %02X\n",status); */
         if(status != NFCSTATUS_SUCCESS)
         {
-            if((PHNFCSTATUS(status) == NFCSTATUS_BOARD_COMMUNICATION_ERROR) &&
-                            (psHciContext->tx_retries < HCI_TX_MAX_RETRIES))
-            {
-                /* In case of a board error, we retry (i.e. send the packet again)
-                 * a couple of times...
-                 */
-                phNfc_sLowerIF_t        *plower_if = &(psHciContext->lower_interface);
-
-                sleep(1);   /* Wait 1s before retry */
-                psHciContext->tx_retries++;
-                HCI_DEBUG("HCI Send Retry... Count=%d\n", psHciContext->tx_retries);
-                plower_if->send((void *)plower_if->pcontext,
-                          (void *)pHwRef, psHciContext->send_buffer, psHciContext->tx_sent);
-            }
-            else
-            {
-                /* Handle the Error Scenario */
-                (void)memset(psHciContext->send_buffer,
-                                                FALSE, PHHCINFC_MAX_BUFFERSIZE);
-                /* psHciContext->hci_transact_state = NFC_TRANSACT_COMPLETE;*/
-                phHciNfc_Error_Sequence( psHciContext, pHwRef, status, NULL, 0 );
-            }
+            /* Handle the Error Scenario */
+            (void)memset(psHciContext->send_buffer,
+                                            FALSE, PHHCINFC_MAX_BUFFERSIZE);
+            /* psHciContext->hci_transact_state = NFC_TRANSACT_COMPLETE;*/
+            phHciNfc_Error_Sequence( psHciContext, pHwRef, status, NULL, 0 );
         }
         else
         {

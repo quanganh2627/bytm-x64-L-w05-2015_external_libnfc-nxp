@@ -471,12 +471,6 @@ NFCSTATUS phLibNfc_SE_SetMode ( phLibNfc_Handle             hSE_Handle,
     else 
     {
         phLibNfc_eSE_ActivationMode originalMode = pLibContext->sSeContext.eActivatedMode;
-
-        pLibContext->sSeContext.hSetemp=hSE_Handle;
-        pLibContext->status.GenCb_pending_status = TRUE;
-        pLibContext->sSeContext.sSeCallabackInfo.pSEsetModeCb = pSE_SetMode_Rsp_cb;
-        pLibContext->sSeContext.sSeCallabackInfo.pSEsetModeCtxt=pContext;
-
         switch(eActivation_mode)
         {
             case phLibNfc_SE_ActModeVirtual: 
@@ -649,18 +643,22 @@ NFCSTATUS phLibNfc_SE_SetMode ( phLibNfc_Handle             hSE_Handle,
                 break;
 
         }/*End of eActivation_mode switch */       
-
-        if(Status != NFCSTATUS_PENDING)
+        if(Status==NFCSTATUS_PENDING)
         {
-            pLibContext->status.GenCb_pending_status = FALSE;
-            pLibContext->sSeContext.sSeCallabackInfo.pSEsetModeCb = NULL;
-            pLibContext->sSeContext.sSeCallabackInfo.pSEsetModeCtxt = NULL;
-
-            if (Status != NFCSTATUS_INVALID_HANDLE) {
-            	// Restore original mode
-            	pLibContext->sSeContext.eActivatedMode = originalMode;
-                Status = NFCSTATUS_FAILED;
-            }
+            pLibContext->sSeContext.hSetemp=hSE_Handle;
+            pLibContext->status.GenCb_pending_status = TRUE;
+            pLibContext->sSeContext.sSeCallabackInfo.pSEsetModeCb = pSE_SetMode_Rsp_cb;
+            pLibContext->sSeContext.sSeCallabackInfo.pSEsetModeCtxt=pContext;                       
+        }
+        else if(Status == NFCSTATUS_INVALID_HANDLE)
+        {
+            Status= Status;
+        }
+        else
+        {
+            // Restore original mode
+            pLibContext->sSeContext.eActivatedMode = originalMode;
+            Status = NFCSTATUS_FAILED;
         }
     }
     return Status;

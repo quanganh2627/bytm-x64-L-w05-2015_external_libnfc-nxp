@@ -867,17 +867,14 @@ typedef union phNfc_uCommand_t
  */
 typedef struct phNfc_sRemoteDevInformation_t
 {
-    uint8_t                    UiccReaderModeDetected;  /**< [out] Boolean
-                                                        *   Flag indicating detection of UICC reader mode.
-                                                        *   The request comes from UICC. */
-    uint8_t                    SessionOpened;           /**< [out] Boolean
-                                                        *   Flag indicating the validity of
-                                                        *   the handle of the remote device. */
-    phNfc_eRemDevType_t        RemDevType;              /**< [out] Remote device type which says that remote
-                                                        is Reader A or Reader B or NFCIP or Felica or
-                                                        Reader B Prime or Jewel*/
-    phNfc_uRemoteDevInfo_t     RemoteDevInfo;           /**< Union of available Remote Device.
-                                                        *   \ref phNfc_uRemoteDevInfo_t Information.  */
+    uint8_t                    SessionOpened;       /**< [out] Boolean 
+                                                     *   Flag indicating the validity of
+                                                     *   the handle of the remote device. */
+    phNfc_eRemDevType_t        RemDevType;          /**< [out] Remote device type which says that remote 
+                                                    is Reader A or Reader B or NFCIP or Felica or 
+                                                    Reader B Prime or Jewel*/
+    phNfc_uRemoteDevInfo_t     RemoteDevInfo;       /**< Union of available Remote Device.
+                                                     *   \ref phNfc_uRemoteDevInfo_t Information.  */
 } phNfc_sRemoteDevInformation_t;
 
 

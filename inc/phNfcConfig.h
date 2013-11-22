@@ -141,7 +141,7 @@
 
 /**< Default Session ID for Initialisation */
 #ifndef DEFAULT_SESSION
-#define DEFAULT_SESSION           "android9"
+#define DEFAULT_SESSION           "android8"
 #endif
 
 
@@ -256,9 +256,7 @@
 #define NXP_NFCIP_ACTIVE_DEFAULT        0x01U
 #endif
 
-#ifndef NXP_NFC_FELICA_CLT_SUPPORT
-#define NXP_NFC_FELICA_CLT_SUPPORT      0x00U
-#endif
+
 
 
 #ifndef NXP_NFC_HCI_TIMER
@@ -293,7 +291,7 @@
 #endif 
 
 #ifndef NXP_UICC_RD_RIGHTS
-#define NXP_UICC_RD_RIGHTS              0x0FU
+#define NXP_UICC_RD_RIGHTS              0x00U
 #endif 
 
 
@@ -324,12 +322,6 @@
 #define NXP_HAL_ENABLE_SMX 
 #endif
 
-/**< Macro to Enable device sanity checking at
- * initialisation */
-#ifndef DEVICE_SANITY_CHECK_AT_INIT
-#define DEVICE_SANITY_CHECK_AT_INIT 0
-#endif
-
 /**< Macro to Enable the Host Session
  * Initialisation */
 #define ESTABLISH_SESSION
@@ -338,7 +330,7 @@
 #define ENABLE_P2P
 
 #define DEFAULT_NFCIP_INITIATOR_MODE_SUPPORT   0x3FU
-#define DEFAULT_NFCIP_TARGET_MODE_SUPPORT      0x0EU
+#define DEFAULT_NFCIP_TARGET_MODE_SUPPORT      0x0FU
 
 /**< Macro to Enable the ISO14443-B Feature */
 #define TYPE_B

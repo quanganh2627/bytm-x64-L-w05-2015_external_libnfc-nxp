@@ -54,26 +54,19 @@
 #include <phOsalNfc.h>
 #include <stdio.h>
 extern char phOsalNfc_DbgTraceBuffer[];
-extern bool_t phOsalNfc_EnableLogging_LLCP;
 #define LLCP_MAX_TRACE_BUFFER   150
-#define LLCP_PRINT( str )  { if (phOsalNfc_EnableLogging_LLCP) { phOsalNfc_DbgString(str); } }
+#define LLCP_PRINT( str )  phOsalNfc_DbgString(str)
 #define LLCP_DEBUG(str, arg) \
    {                                                                    \
-       if (phOsalNfc_EnableLogging_LLCP) \
-       { \
-        snprintf(phOsalNfc_DbgTraceBuffer,LLCP_MAX_TRACE_BUFFER,str,arg); \
-        phOsalNfc_DbgString(phOsalNfc_DbgTraceBuffer);                    \
-       } \
+      snprintf(phOsalNfc_DbgTraceBuffer,LLCP_MAX_TRACE_BUFFER,str,arg); \
+      phOsalNfc_DbgString(phOsalNfc_DbgTraceBuffer);                    \
    }
 #define LLCP_PRINT_BUFFER(msg,buf,len) \
    {                                                                             \
-       if (phOsalNfc_EnableLogging_LLCP) \
-       { \
-          snprintf(phOsalNfc_DbgTraceBuffer,LLCP_MAX_TRACE_BUFFER,"\n\t %s:",msg);   \
-          phOsalNfc_DbgString(phOsalNfc_DbgTraceBuffer);                             \
-          phOsalNfc_DbgTrace(buf,len);                                               \
-          phOsalNfc_DbgString("\r");                                                 \
-       } \
+      snprintf(phOsalNfc_DbgTraceBuffer,LLCP_MAX_TRACE_BUFFER,"\n\t %s:",msg);   \
+      phOsalNfc_DbgString(phOsalNfc_DbgTraceBuffer);                             \
+      phOsalNfc_DbgTrace(buf,len);                                               \
+      phOsalNfc_DbgString("\r");                                                 \
    }
 #else
 #define LLCP_PRINT( str ) 

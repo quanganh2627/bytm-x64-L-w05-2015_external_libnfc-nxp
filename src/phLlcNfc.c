@@ -307,47 +307,38 @@ phLlcNfc_Release(
     {
         result = NFCSTATUS_SUCCESS;
         ps_llc_ctxt->phwinfo = pLinkInfo;
+#ifdef INCLUDE_DALINIT_DEINIT   
+        if (NULL != ps_llc_ctxt->lower_if.release)
+        {
+            result = ps_llc_ctxt->lower_if.release(
+                            ps_llc_ctxt->lower_if.pcontext, 
+                            pLinkInfo);
+        }
+#endif
+        if (NULL != ps_llc_ctxt->lower_if.transact_abort)
+        {
+            result = ps_llc_ctxt->lower_if.transact_abort(
+                            ps_llc_ctxt->lower_if.pcontext, 
+                            pLinkInfo);
+        }
+        if (NULL != ps_llc_ctxt->lower_if.unregister)
+        {
+            result = ps_llc_ctxt->lower_if.unregister(
+                            ps_llc_ctxt->lower_if.pcontext, 
+                            pLinkInfo);
+        }
+        
+        /* Call the internal LLC timer un-initialise */
+        phLlcNfc_TimerUnInit(ps_llc_ctxt);
+        phLlcNfc_H_Frame_DeInit(&ps_llc_ctxt->s_frameinfo);
+        (void)memset(ps_llc_ctxt, 0, sizeof(phLlcNfc_Context_t));
+        phOsalNfc_FreeMemory(ps_llc_ctxt);
+        ps_llc_ctxt = NULL;
 
 #ifdef LLC_RELEASE_FLAG
         g_release_flag = TRUE;
 #endif /* #ifdef LLC_RELEASE_FLAG */
 
-        if (ps_llc_ctxt->s_frameinfo.read_pending || ps_llc_ctxt->s_frameinfo.write_pending)
-        {
-            if (NULL != ps_llc_ctxt->lower_if.transact_abort)
-            {
-                ps_llc_ctxt->lower_if.transact_abort(
-                                ps_llc_ctxt->lower_if.pcontext,
-                                pLinkInfo);
-            }
-
-            PH_LLCNFC_PRINT("Llc I/O pending\n");
-            result = PHNFCSTVAL(CID_NFC_LLC,NFCSTATUS_BUSY);
-        }
-        else
-        {
-#ifdef INCLUDE_DALINIT_DEINIT
-            if (NULL != ps_llc_ctxt->lower_if.release)
-            {
-                result = ps_llc_ctxt->lower_if.release(
-                                ps_llc_ctxt->lower_if.pcontext,
-                                pLinkInfo);
-            }
-#endif
-            if (NULL != ps_llc_ctxt->lower_if.unregister)
-            {
-                result = ps_llc_ctxt->lower_if.unregister(
-                                ps_llc_ctxt->lower_if.pcontext,
-                                pLinkInfo);
-            }
-
-            /* Call the internal LLC timer un-initialise */
-            phLlcNfc_TimerUnInit(ps_llc_ctxt);
-            phLlcNfc_H_Frame_DeInit(&ps_llc_ctxt->s_frameinfo);
-            (void)memset(ps_llc_ctxt, 0, sizeof(phLlcNfc_Context_t));
-            phOsalNfc_FreeMemory(ps_llc_ctxt);
-            ps_llc_ctxt = NULL;
-        }
     }
     PH_LLCNFC_DEBUG("Llc release result : 0x%04X\n", result);
     return result;
@@ -403,9 +394,6 @@ phLlcNfc_Send (
         
         /* Copy the hardware information */
         ps_llc_ctxt->phwinfo = pLinkInfo;
-
-        PH_LLCNFC_PRINT("Lock the write mutex in LLC send\n");
-        pthread_mutex_lock(&ps_frame_info->write_protect_mutex);
 
         /* Create I frame with the user buffer  */
         (void)phLlcNfc_H_CreateIFramePayload (
@@ -473,9 +461,6 @@ phLlcNfc_Send (
                             ((resend_i_frame == ps_frame_info->write_wait_call) ? 
                             ps_frame_info->write_wait_call : user_i_frame);
         }
-
-        PH_LLCNFC_PRINT("Unlock the write mutex in LLC send\n");
-        pthread_mutex_unlock(&ps_frame_info->write_protect_mutex);
     }
 
     
